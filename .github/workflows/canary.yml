@@ -1,1 +1,82 @@
+name: FK Cloaking Canary
 
+"on":
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check site as three personas
+        run: |
+          FAIL=0
+
+          URLS="https://www.flowersandkisses.com.sg/
+          https://www.flowersandkisses.com.sg/shop
+          https://www.flowersandkisses.com.sg/product-category/graduation"
+
+          UA_BROWSER="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+          UA_GOOGLEBOT="Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+          UA_MOBILE="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+
+          SPAM='togel|gacor|maxwin|judi|bandar|situs|slot gacor|slot online|pragmatic play|rtp live|scatter hitam'
+
+          for URL in $URLS; do
+            for PERSONA in browser googlebot mobile; do
+
+              case "$PERSONA" in
+                browser)   UA="$UA_BROWSER";   REF="" ;;
+                googlebot) UA="$UA_GOOGLEBOT"; REF="" ;;
+                mobile)    UA="$UA_MOBILE";    REF="https://www.google.com/" ;;
+              esac
+
+              if [ -n "$REF" ]; then
+                BODY=$(curl -sL --max-time 30 -A "$UA" -e "$REF" "$URL") || BODY="__FAILED__"
+                CODE=$(curl -s -o /dev/null -w '%{http_code}' -L --max-time 30 -A "$UA" -e "$REF" "$URL") || CODE="000"
+                FINAL=$(curl -s -o /dev/null -w '%{url_effective}' -L --max-time 30 -A "$UA" -e "$REF" "$URL") || FINAL=""
+              else
+                BODY=$(curl -sL --max-time 30 -A "$UA" "$URL") || BODY="__FAILED__"
+                CODE=$(curl -s -o /dev/null -w '%{http_code}' -L --max-time 30 -A "$UA" "$URL") || CODE="000"
+                FINAL=$(curl -s -o /dev/null -w '%{url_effective}' -L --max-time 30 -A "$UA" "$URL") || FINAL=""
+              fi
+
+              if [ "$BODY" = "__FAILED__" ]; then
+                echo "::error::[$PERSONA] $URL - request failed"
+                FAIL=1
+                continue
+              fi
+
+              if [ "$CODE" != "200" ]; then
+                echo "::error::[$PERSONA] $URL - HTTP $CODE"
+                FAIL=1
+              fi
+
+              case "$FINAL" in
+                *flowersandkisses.com.sg*) : ;;
+                *) echo "::error::[$PERSONA] $URL - redirected off-domain to $FINAL"; FAIL=1 ;;
+              esac
+
+              if ! printf '%s' "$BODY" | grep -qi "flowers and kisses"; then
+                echo "::error::[$PERSONA] $URL - brand name missing from page"
+                FAIL=1
+              fi
+
+              if printf '%s' "$BODY" | grep -qiE "$SPAM"; then
+                echo "::error::[$PERSONA] $URL - SPAM CONTENT DETECTED"
+                printf '%s' "$BODY" | grep -oiE "$SPAM" | sort -u | head -10
+                FAIL=1
+              fi
+
+              echo "[$PERSONA] $URL - checked (HTTP $CODE)"
+
+            done
+          done
+
+          if [ "$FAIL" -ne 0 ]; then
+            echo "::error::CANARY FAILED - investigate immediately"
+            exit 1
+          fi
+
+          echo "All checks passed."
