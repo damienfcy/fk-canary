@@ -22,7 +22,7 @@ jobs:
           UA_GOOGLEBOT="Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
           UA_MOBILE="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
 
-          SPAM='togel|gacor|maxwin|judi|bandar|situs|slot gacor|slot online|pragmatic play|rtp live|scatter hitam'
+                    SPAM='togel|gacor|maxwin|slot gacor|slot online|situs slot|situs togel|judi online|bandar togel|pragmatic play|rtp live|scatter hitam'
 
           for URL in $URLS; do
             for PERSONA in browser googlebot mobile; do
