@@ -15,6 +15,7 @@ jobs:
 
           URLS="https://www.flowersandkisses.com.sg/
           https://www.flowersandkisses.com.sg/shop
+          https://www.flowersandkisses.com.sg/cart
           https://www.flowersandkisses.com.sg/product-category/graduation"
 
           UA_BROWSER="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
